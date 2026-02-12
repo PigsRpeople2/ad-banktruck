@@ -6,8 +6,8 @@ Config.truckLocations = { -- The possible spawn locations for the truck
 }
 
 Config.C4Item = 'ammo-9' -- The item required to plant C4 on the truck, should match an item in your inventory system
-Config.C4PlantDuration = 5000 -- The time it takes to plant the C4 in milliseconds
-Config.C4DetonateDuration = 10000 -- The time after planting the C4 until it detonates in milliseconds
+Config.C4PlantDuration = 3500 -- The time it takes to plant the C4 in milliseconds (3500 matches the animation length)
+Config.C4DetonateDuration = 60000 -- The time after planting the C4 until it detonates in milliseconds
 
 Config.guardModel = 's_m_m_security_01' -- The model of the guards protecting the truck
 Config.guardWeapon = 'WEAPON_CARBINERIFLE' -- The weapon used by the guards
