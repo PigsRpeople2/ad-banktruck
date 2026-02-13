@@ -5,7 +5,66 @@ local effectSpawn = "proj_flare_trail"
 local ptfxHandle
 local blip
 local guards = {}
+local props = {}
+local propName = "prop_money_bag_01" --ex_prop_crate_money_sc   prop_money_bag_01 bkr_prop_bkr_cashpile_07
+local scatterProp
+local scatterPropName = "ex_cash_scatter_01"
 
+local bagOffsets = {
+    vector3(1.625, -2.0, -0.2),
+    vector3(1.625, -2.4, -0.2),
+    vector3(1.625, -2.8, -0.2),
+    vector3(1.625, -3.2, -0.2),
+    vector3(1.625, -3.6, -0.2),
+    vector3(1.625, -4.0, -0.2),
+    vector3(-0.275, -2.0, -0.2),
+    vector3(-0.275, -2.4, -0.2),
+    vector3(-0.275, -2.8, -0.2),
+    vector3(-0.275, -3.2, -0.2),
+    vector3(-0.275, -3.6, -0.2),
+    vector3(-0.275, -4.0, -0.2),
+}
+
+
+-- create shit in the truck to look good then make it takable
+
+
+RegisterNetEvent('ad-banktruck:grabMoney')
+AddEventHandler('ad-banktruck:grabMoney', function()
+    if DoesEntityExist(truck) then
+        if lib.progressBar({
+            duration = Config.C4PlantDuration,
+            items = Config.C4Item,
+            label = "Grabbing Money...",
+            useWhileDead = false,
+            canCancel = true,
+            anim = {
+                clip = "grab",
+                dict = "anim@scripted@player@mission@tun_table_grab@gold@heeled@"
+            },
+            disable = {
+                move = true,
+                car = true,
+                combat = true,
+                mouse = false
+            },
+        }) then
+            exports.ox_target:removeModel(`stockade`)
+            TriggerServerEvent('ad-banktruck:grabMoney', NetworkGetNetworkIdFromEntity(truck))
+            DeleteObject(scatterProp)
+            for i = 1, #props do
+                local prop = props[i]
+                if DoesEntityExist(prop) then
+                    DeleteObject(prop)
+                end
+            end
+            RemoveBlip(blip)
+        else
+            ClearPedTasks(PlayerPedId())
+        end
+
+    end
+end)
 
 RegisterNetEvent('ad-banktruck:detonateC4')
 AddEventHandler('ad-banktruck:detonateC4', function(truckNetId)
@@ -15,10 +74,26 @@ AddEventHandler('ad-banktruck:detonateC4', function(truckNetId)
             StopParticleFxLooped(ptfxHandle, false)
 
             local effectPos = (GetWorldPositionOfEntityBone(truck, GetEntityBoneIndexByName(truck, "door_dside_r")) + GetWorldPositionOfEntityBone(truck, GetEntityBoneIndexByName(truck, "door_pside_r"))) / 2
-        
+
             AddExplosion(effectPos.x, effectPos.y, effectPos.z, 5, 5.0, true, false, 1.0)
             SetVehicleDoorOpen(truck, 2, false, false)
             SetVehicleDoorOpen(truck, 3, false, false)
+
+
+            exports.ox_target:addModel(`stockade`, {
+            {
+                name = 'stockade_rear_vault',
+                icon = 'fas fa-lock',
+                label = 'Take Money',
+                bones = {'door_dside_r', 'door_pside_r'}, 
+                canInteract = function(entity, distance, coords, name, bone)
+                    return GetEntitySpeed(entity) < 3.0 -- Can't interact with moving stockade
+                end,
+                onSelect = function ()
+                    TriggerEvent('ad-banktruck:grabMoney')
+                end
+            }
+        })
         end
     end
 end)
@@ -35,6 +110,11 @@ AddEventHandler('ad-banktruck:createC4', function(...)
         local effectPos = (GetWorldPositionOfEntityBone(truck, GetEntityBoneIndexByName(truck, "door_dside_r")) + GetWorldPositionOfEntityBone(truck, GetEntityBoneIndexByName(truck, "door_pside_r"))) / 2
         print("starting effect")
         
+        local guardTeamHash = GetHashKey('PLAYER_PHOBIC')
+        if not Config.guardHostile then
+            SetRelationshipBetweenGroups(5, guardTeamHash, `PLAYER`)
+            SetRelationshipBetweenGroups(5, `PLAYER`, guardTeamHash)
+        end
         
         if not HasNamedPtfxAssetLoaded(ptfxAssetName) then
             RequestNamedPtfxAsset(ptfxAssetName)
@@ -115,7 +195,7 @@ AddEventHandler('ad-banktruck:start', function()
         while not HasModelLoaded(GetHashKey(Config.truckModel)) do
             Wait(10)
         end
-        local spawnLocation = Config.truckLocations[math.random(#Config.truckLocations)]
+        local spawnLocation = Config.truckLocations[math.random(#Config.truckLocations)] - vec4(0.0, 0.0, 0.5, 0.0)
         truck = CreateVehicle(GetHashKey(Config.truckModel), spawnLocation.x, spawnLocation.y, spawnLocation.z, spawnLocation.w, true, false)
         SetEntityInvincible(truck, true)
         FreezeEntityPosition(truck, true)
@@ -127,11 +207,49 @@ AddEventHandler('ad-banktruck:start', function()
         AddTextComponentString("Bank Truck")
         EndTextCommandSetBlipName(blip)
 
-        RequestModel(GetHashKey(Config.guardModel))
-        while not HasModelLoaded(GetHashKey(Config.guardModel)) do
-            Wait(10)
+
+
+        if not HasModelLoaded(GetHashKey(propName)) then
+            RequestModel(GetHashKey(propName))
+            while not HasModelLoaded(GetHashKey(propName)) do
+                Wait(10)
+            end
         end
 
+        local centralBonePos = GetWorldPositionOfEntityBone(truck, GetEntityBoneIndexByName(truck, "seat_dside_f"))
+        for i = 1, #bagOffsets do
+            
+            local propPos = GetOffsetFromCoordAndHeadingInWorldCoords(centralBonePos.x, centralBonePos.y, centralBonePos.z, spawnLocation.w, bagOffsets[i].x, bagOffsets[i].y, bagOffsets[i].z)
+            local propPosRand = vector3(propPos.x + math.random(-10, 10) * 0.001, propPos.y + math.random(-5, 5) * 0.01, propPos.z)
+            if math.random(1, 10) ~= 1 then
+                propPos = vector3(propPos.x, propPos.y, propPos.z - 0.1)
+                local prop = CreateObject(GetHashKey(propName), propPosRand.x, propPosRand.y, propPosRand.z, true, true, false)
+                local bagRot = 90 + math.random(-10, 10)
+                SetEntityHeading(prop, spawnLocation.w + bagRot)
+                SetEntityCollision(prop, false, false)
+                table.insert(props, prop)
+            end
+        end
+
+        if not HasModelLoaded(GetHashKey(scatterPropName)) then
+            RequestModel(GetHashKey(scatterPropName))
+            while not HasModelLoaded(GetHashKey(scatterPropName)) do
+                Wait(10)
+            end
+        end
+
+        local scatterPropPos = GetOffsetFromCoordAndHeadingInWorldCoords(centralBonePos.x, centralBonePos.y, centralBonePos.z, spawnLocation.w, 0.675, -2.8, -0.5)
+        scatterProp = CreateObject(GetHashKey(scatterPropName), scatterPropPos.x, scatterPropPos.y, scatterPropPos.z, true, true, false)
+        SetEntityHeading(scatterProp, spawnLocation.w + 270)
+        SetEntityCollision(scatterProp, false, false)
+
+
+        if not HasModelLoaded(GetHashKey(Config.guardModel)) then
+            RequestModel(GetHashKey(Config.guardModel))
+            while not HasModelLoaded(GetHashKey(Config.guardModel)) do
+                Wait(10)
+            end
+        end
 
         AddRelationshipGroup('PLAYER_PHOBIC')
         local guardTeamHash = GetHashKey('PLAYER_PHOBIC')
@@ -145,7 +263,8 @@ AddEventHandler('ad-banktruck:start', function()
         end
 
         for i = 1, Config.guards do
-            local guard = CreatePed(4, GetHashKey(Config.guardModel), spawnLocation.x + Config.guardPositions[i].x, spawnLocation.y + Config.guardPositions[i].y, spawnLocation.z + Config.guardPositions[i].z, 0.0, true, false)
+            local guardPos = GetOffsetFromCoordAndHeadingInWorldCoords(spawnLocation.x, spawnLocation.y, spawnLocation.z, spawnLocation.w, Config.guardPositions[i].x, Config.guardPositions[i].y, Config.guardPositions[i].z)
+            local guard = CreatePed(4, GetHashKey(Config.guardModel), guardPos.x, guardPos.y, guardPos.z, 0.0, true, false)
             table.insert(guards, guard)
             GiveWeaponToPed(guard, GetHashKey(Config.guardWeapon), -1, false, true)
             SetPedCombatAttributes(guard, 46, true)
@@ -170,7 +289,7 @@ AddEventHandler('ad-banktruck:start', function()
                 name = 'stockade_rear_vault',
                 item = Config.C4Item,
                 icon = 'fas fa-lock',
-                label = 'Open Doors',
+                label = 'Plant C4',
                 bones = {'door_dside_r', 'door_pside_r'}, 
                 canInteract = function(entity, distance, coords, name, bone)
                     return GetEntitySpeed(entity) < 3.0 -- Can't interact with moving stockade
@@ -222,4 +341,12 @@ AddEventHandler('onResourceStop', function(resourceName)
         end
     end
     StopParticleFxLooped(ptfxHandle, false)
+    for _, prop in ipairs(props) do
+        if DoesEntityExist(prop) then
+            DeleteObject(prop)
+        end
+    end
+    if DoesEntityExist(scatterProp) then
+        DeleteObject(scatterProp)
+    end
 end)
