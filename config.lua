@@ -1,13 +1,26 @@
 Config = {}
 
-Config.truckModel = 'stockade' -- The model of the truck used in the robbery
-Config.truckLocations = { -- The possible spawn locations for the truck
-    vector4(-356.4294, -91.6064, 45.6567, 252.2835),
-}
+Config.enabled = true -- Whether the heist is enabled or not, can be used to disable the heist without removing the script
+
+Config.pedLocation = vec4(934.6655, -1520.6864, 30.0653, 320.7801) -- The location to spawn the start mission ped
+Config.pedModel = "cs_casey" -- The model of the start mission ped
+Config.startItem = "trojan_usb" -- The item used to start the heist
+Config.startItemAmount = 2 -- The amount of the item used
+Config.consumeItem = true -- Whether the item should be consumed when starting the heist
+
+Config.heistCooldown = 1200000 -- The cooldown time for the heist in milliseconds (1200000 = 20 minutes)
+Config.heistTimeout = 900000 -- The time until the heist clears in milliseconds (900000 = 15 minutes)
+
 
 Config.C4Item = 'ammo-9' -- The item required to plant C4 on the truck, should match an item in your inventory system
 Config.C4PlantDuration = 3500 -- The time it takes to plant the C4 in milliseconds (3500 matches the animation length)
 Config.C4DetonateDuration = 10000 -- The time after planting the C4 until it detonates in milliseconds
+
+
+Config.truckModel = 'stockade' -- The model of the truck used in the robbery
+Config.truckLocations = { -- The possible spawn locations for the truck
+    vector4(-356.4294, -91.1064, 45.6567, 252.2835),
+}
 
 Config.guardModel = 's_m_m_security_01' -- The model of the guards protecting the truck
 Config.guardWeapon = 'WEAPON_CARBINERIFLE' -- The weapon used by the guards
@@ -19,6 +32,7 @@ Config.guardPositions = { -- The possible spawn positions for the guards relativ
     vector3(4.0, -4.0, 0.0),
     vector3(-4.0, -4.0, 0.0)
 }
+
 
 Config.grabTime = 2000 -- The time it takes to grab money from the truck in milliseconds
 Config.rewards = {

@@ -1,10 +1,47 @@
 local activeHeist = false
+local heistCooldown = false
 
 RegisterServerEvent('ad-banktruck:startserver')
 AddEventHandler('ad-banktruck:startserver', function()
     if not activeHeist then
-        activeHeist = true
-        TriggerClientEvent('ad-banktruck:start', -1)
+        if not heistCooldown then
+            if exports.ox_inventory:GetItemCount(source, Config.startItem) >= Config.startItemAmount then
+                if Config.consumeItem then
+                    exports.ox_inventory:RemoveItem(source, Config.startItem, Config.startItemAmount)
+                end
+                TriggerClientEvent('ad-banktruck:start', -1)
+                CreateThread(function()
+                    Wait(Config.heistTimeout)
+                    activeHeist = false
+                    TriggerClientEvent('ad-banktruck:clear', -1)
+                    heistCooldown = true
+                    Wait(Config.heistCooldown)
+                    heistCooldown = false
+                end)
+            else
+                local itemLabel = exports.ox_inventory:Items(Config.startItem) and exports.ox_inventory:Items(Config.startItem).label or Config.startItem
+                TriggerClientEvent('ox_lib:notify', source, {
+                    type = 'error',
+                    title = 'Missing Item',
+                    description = 'You need at least ' .. Config.startItemAmount .. ' ' .. itemLabel .. ' to start the heist.',
+                    position = 'top',
+                })
+            end
+        else
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                title = 'Heist Cooldown',
+                description = 'Please wait before starting another heist.',
+                position = 'top',
+            })
+        end
+    else
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            title = 'Heist already in Progress',
+            description = 'A heist is already in progress. Please wait for it to finish before starting another one.',
+            position = 'top',
+        })
     end
 end)
 
@@ -47,5 +84,4 @@ AddEventHandler('ad-banktruck:plantC4', function(truckNetId)
         end
     end
 end)
-
 

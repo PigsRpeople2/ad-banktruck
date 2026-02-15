@@ -9,6 +9,9 @@ local props = {}
 local propName = "prop_money_bag_01" --ex_prop_crate_money_sc   prop_money_bag_01 bkr_prop_bkr_cashpile_07
 local scatterProp
 local scatterPropName = "ex_cash_scatter_01"
+local ped
+
+
 
 local bagOffsets = {
     vector3(1.625, -2.0, -0.2),
@@ -26,7 +29,7 @@ local bagOffsets = {
 }
 
 
--- create shit in the truck to look good then make it takable
+
 
 
 RegisterNetEvent('ad-banktruck:grabMoney')
@@ -330,7 +333,88 @@ RegisterCommand("run", function()
     TriggerServerEvent('ad-banktruck:startserver') -- For testing purposes, this command will trigger the server event to start the heist
 end, false)
 
+RegisterNetEvent('ad-banktruck:startDialog')
+AddEventHandler('ad-banktruck:startDialog', function()
+    if Config.enabled then
+        
+        local alert = lib.alertDialog({
+            header = "Bank Truck Heist",
+            content = "Are you sure you want to start the heist? This will cost " .. Config.startItemAmount .. " " .. exports.ox_inventory:Items(Config.startItem).label,
+            centered = true,
+            cancel = true
+        })
+        if alert == "confirm" then
+            TriggerServerEvent('ad-banktruck:startserver')
+        end
+    else
+        lib.alertDialog({
+            header = "Bank Truck Heist",
+            content = "This heist is currently disabled. Please check back later.",
+            centered = true,
+            cancel = false
+        })
+    end
+end)
 
+if not DoesEntityExist(ped) then
+    local modelHash = GetHashKey(Config.pedModel)
+    if not HasModelLoaded(modelHash) then
+        RequestModel(modelHash)
+        while not HasModelLoaded(modelHash) do
+            Wait(10)
+        end
+    end
+    ped = CreatePed(
+		0 --[[ integer ]], 
+		modelHash --[[ Hash ]], 
+		Config.pedLocation.x --[[ number ]], 
+		Config.pedLocation.y --[[ number ]], 
+		Config.pedLocation.z --[[ number ]], 
+		Config.pedLocation.w --[[ number ]], 
+		true --[[ boolean ]], 
+		true --[[ boolean ]]
+	)
+
+    FreezeEntityPosition(ped, true)
+    SetEntityInvincible(ped, true)
+    SetBlockingOfNonTemporaryEvents(ped, true)
+
+    exports.ox_target:addEntity(NetworkGetNetworkIdFromEntity(ped), {
+        {
+            name = 'start_banktruck_heist',
+            icon = 'fas fa-truck',
+            distance = 2.0,
+            label = 'Start Bank Truck Heist',
+            onSelect = function()
+                TriggerEvent('ad-banktruck:startDialog')
+            end
+        }
+    })
+end
+
+
+RegisterNetEvent('ad-banktruck:clear')
+AddEventHandler('ad-banktruck:clear', function()
+    if DoesEntityExist(truck) then
+        DeleteVehicle(truck)
+    end
+    RemoveBlip(blip)
+    for _, guard in ipairs(guards) do
+        if DoesEntityExist(guard) then
+            DeleteEntity(guard)
+        end
+    end
+    StopParticleFxLooped(ptfxHandle, false)
+    for _, prop in ipairs(props) do
+        if DoesEntityExist(prop) then
+            DeleteObject(prop)
+        end
+    end
+    if DoesEntityExist(scatterProp) then
+        DeleteObject(scatterProp)
+    end
+    activeHeist = false
+end)
 
 AddEventHandler('onResourceStop', function(resourceName)
     DeleteVehicle(truck)
@@ -348,5 +432,8 @@ AddEventHandler('onResourceStop', function(resourceName)
     end
     if DoesEntityExist(scatterProp) then
         DeleteObject(scatterProp)
+    end
+    if DoesEntityExist(ped) then
+        DeleteEntity(ped)
     end
 end)
