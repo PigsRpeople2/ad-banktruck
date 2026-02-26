@@ -5,8 +5,8 @@ local ped = nil
 local cooledDown = false
 
 local function getPoliceCount()
-    if Config.policeScript == 'wasabi_police' then
-        return exports['wasabi_police']:GetPoliceCount()
+    if Config.framework == 'qbox' then
+        return exports.qbx_core:GetDutyCountType("police")
     end
     return 0
 end
@@ -25,7 +25,7 @@ AddEventHandler('ad-banktruck:startserver', function()
     local src = source
     local police = getPoliceCount()
 
-    if Config.policeRequired > 0 and police < Config.policeRequired then
+    if Config.policeRequired > 0 and police <= Config.policeRequired then
         return notify(src, 'error', 'Not Enough Police', 'There must be at least ' .. Config.policeRequired .. ' police officers online.')
     end
 

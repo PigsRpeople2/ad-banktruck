@@ -2,6 +2,7 @@ Config = {}
 
 Config.enabled = true -- Whether the heist is enabled or not, can be used to disable the heist without removing the script
 Config.policeRequired = 3 -- The required amount of police online to start the heist, set to 0 to not require any police
+Config.framework = "qbox"
 
 Config.pedLocation = vec4(934.6655, -1520.6864, 30.0653, 320.7801) -- The location to spawn the start mission ped
 Config.pedModel = "cs_casey" -- The model of the start mission ped
@@ -48,7 +49,6 @@ Config.rewards = {
 
 
 
-Config.policeScript = 'none' -- The police script you are using, options are 'wasabi_police' or 'none', more may be added in the future. This is used to determine how to check for police and how to send dispatch notifications.
 
 
 function Config.policeDispatchExport() -- Export to use when thermite is planted
